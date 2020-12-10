@@ -27,6 +27,54 @@ this allows `pingwatch` to open raw sockets so it can send ICMP packets.
 
 You can get a list of command-line flags using `pingwatch -h`
 
+#### Docker Install ####
+
+Create a working dir for you to save your docker compose files and database
+```
+mkdir ~/pingwatch
+```
+Create a Dockerfile
+```
+FROM golang:1.13
+RUN git clone https://github.com/fazalmajid/pingwatch
+WORKDIR ./pingwatch
+RUN go mod download
+RUN go build
+RUN setcap cap_net_raw=+ep pingwatch
+CMD ./pingwatch -db /data/pingwatch.sqlite -p "0.0.0.0:8086"
+```
+Create a docker-compose.yml file
+```
+version: '2'
+services:
+  pingwatch:
+   container_name: pingwatch
+   build:
+    context: ./
+    dockerfile: Dockerfile
+   ports:
+    - "8086:8086/tcp"
+   volumes:
+    - ~/pingwatch/:/data/
+   tty: true
+```
+Build and start up your new docker file
+```
+docker-compose up --build -d
+```
+Now we just need to add some networks to ping.
+```
+docker exec -it pingwatch bash
+```
+
+```
+./pingwatch -add 8.8.8.8 -db /data/pingwatch.sqlite
+```
+Finally restart your container for the changes to take effect
+```
+docker restart pingwatch
+```
+
 ## Database
 
 ### Configuration
